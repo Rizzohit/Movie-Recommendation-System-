@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (matches auth.uid)
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - photoURL: string (optional)
+    //   - createdAt: string (required, date-time)
+    //
+    // Sub-Collection: users/{userId}/history
+    // Document ID: auto-generated
+    // Fields:
+    //   - uid: string (required, matches userId)
+    //   - source: string (required, 'OTT' or 'SEARCH')
+    //   - content: string (required, max 500 chars)
+    //   - timestamp: string (required, date-time)
+    //
+    // Sub-Collection: users/{userId}/recommendations
+    // Document ID: auto-generated
+    // Fields:
+    //   - uid: string (required, matches userId)
+    //   - title: string (required)
+    //   - year: string (required)
+    //   - matchReason: string (required)
+    //   - platform: string (required)
+    //   - timestamp: string (required, date-time)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             isValidDateString(data.createdAt) &&
+             (data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'createdAt']));
+    }
+
+    function isValidHistoryItem(data, userId) {
+      return data.keys().hasAll(['uid', 'source', 'content', 'timestamp']) &&
+             data.uid == userId &&
+             data.uid == request.auth.uid &&
+             data.source in ['OTT', 'SEARCH'] &&
+             data.content is string && data.content.size() > 0 && data.content.size() <= 1000 &&
+             isValidDateString(data.timestamp) &&
+             data.keys().hasOnly(['uid', 'source', 'content', 'timestamp']);
+    }
+
+    function isValidRecommendation(data, userId) {
+      return data.keys().hasAll(['uid', 'title', 'year', 'matchReason', 'platform', 'timestamp']) &&
+             data.uid == userId &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() <= 200 &&
+             data.year is string && data.year.size() <= 20 &&
+             data.matchReason is string && data.matchReason.size() <= 2000 &&
+             data.platform is string && data.platform.size() <= 100 &&
+             isValidDateString(data.timestamp) &&
+             data.keys().hasOnly(['uid', 'title', 'year', 'matchReason', 'platform', 'timestamp']);
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "madhkarshingadel4545@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUserProfile(request.resource.data);
+      allow delete: if isAdmin();
+
+      match /history/{historyId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidHistoryItem(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+        allow update: if false;
+      }
+
+      match /recommendations/{recId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidRecommendation(request.resource.data, userId);
+        allow delete: if isOwner(userId) || isAdmin();
+        allow update: if false;
+      }
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

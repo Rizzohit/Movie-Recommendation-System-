@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "HistoryItem": {
+      "title": "HistoryItem",
+      "description": "A single piece of viewing or search history",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "source": { "type": "string", "enum": ["OTT", "SEARCH"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "source", "content", "timestamp"]
+    },
+    "Recommendation": {
+      "title": "Recommendation",
+      "description": "A generated movie recommendation",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "year": { "type": "string" },
+        "matchReason": { "type": "string" },
+        "platform": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "year", "matchReason", "platform", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profile data"
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": "HistoryItem",
+      "description": "Stores user-specific history entries"
+    },
+    "/users/{userId}/recommendations/{recId}": {
+      "schema": "Recommendation",
+      "description": "Stores history of generated recommendations for a user"
+    }
+  }
+}

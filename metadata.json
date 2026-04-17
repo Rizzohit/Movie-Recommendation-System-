@@ -1,0 +1,6 @@
+{
+  "name": "Movie Recommendation system",
+  "description": "An AI-powered personalized movie recommendation system grounding suggestions in search and viewing history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --color-editorial-bg: #0D0D0D;
+  --color-editorial-paper: #E8E4DF;
+  --color-editorial-accent: #D4AF37;
+  --color-editorial-muted: #888;
+  
+  --font-serif: "Georgia", serif;
+  --font-sans: "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-editorial-bg text-editorial-paper font-sans selection:bg-editorial-accent/30;
+  }
+}
+
+.editorial-serif {
+  @apply font-serif italic;
+}
+
+.editorial-label {
+  @apply text-[10px] uppercase tracking-[2px] text-editorial-accent;
+}
+
+.editorial-border {
+  @apply border-editorial-paper/10;
+}
+
+.editorial-card {
+  @apply border-b border-editorial-paper/10 pb-8 last:border-b-0;
+}
